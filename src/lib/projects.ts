@@ -7,26 +7,27 @@ import {
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore'
+
 import { db } from './firebase'
+
 // Types
 import type { Ad, Project } from '#/types/project'
 
 /**
  * Creates a new project in Firestore.
  *
- * This is the entry point of the entire pipeline.
- * When the user submits a website URL, a new project document
- * is created immediately so every subsequent processing step
- * (extraction, AI generation, editing, regeneration) updates
- * the same document instead of creating new records.
+ * This is the entry point of the processing pipeline. A project document is
+ * created immediately after the user submits a website URL so every subsequent
+ * step (website extraction, AI generation, ad generation, editing, etc.)
+ * updates the same Firestore document.
  *
- * Initial document state:
+ * Initial project state:
  * - status = "processing"
  * - brandProfile = null
  * - ads = []
  *
- * @param url Website URL submitted by the user.
- * @returns The Firestore document ID of the newly created project.
+ * @param url Website submitted by the user.
+ * @returns Firestore document ID.
  */
 export async function saveProject(url: string): Promise<string> {
   const docRef = await addDoc(collection(db, 'projects'), {
@@ -43,11 +44,11 @@ export async function saveProject(url: string): Promise<string> {
 /**
  * Retrieves a project from Firestore.
  *
- * Used whenever the UI needs the latest state of a project.
- * Returns null if the project cannot be found.
+ * Returns the complete project document or null if the document
+ * does not exist.
  *
- * @param id Firestore project document ID.
- * @returns The project or null if it does not exist.
+ * @param id Firestore project ID.
+ * @returns The project or null.
  */
 export async function getProject(id: string): Promise<Project | null> {
   const snapshot = await getDoc(doc(db, 'projects', id))
@@ -63,66 +64,54 @@ export async function getProject(id: string): Promise<Project | null> {
 }
 
 /**
- * Updates any top-level project fields.
+ * Updates one or more project fields.
  *
- * Intended for long-running pipeline steps such as:
- * - storing the extracted brand profile
- * - updating project status
- * - storing generation cost
- * - storing processing metadata
+ * Uses Firestore's partial update functionality so only the supplied
+ * fields are modified.
  *
- * Uses a partial update so existing data is preserved.
+ * Typical uses:
+ * - Updating project status
+ * - Saving the generated brand profile
+ * - Saving processing metadata
  *
- * @param id Firestore project document ID.
- * @param data Partial project fields to update.
+ * @param id Firestore project ID.
+ * @param data Fields to update.
  */
 export async function updateProject(
   id: string,
   data: Partial<Project>,
 ): Promise<void> {
-  await updateDoc(doc(db, 'projects', id), {
-    ...data,
-  })
+  await updateDoc(doc(db, 'projects', id), data)
 }
 
 /**
- * Replaces the project's ads collection.
+ * Replaces the project's advertisements.
  *
- * This is used when:
- * - ads are generated for the first time
- * - a single ad is regenerated
- * - the user edits ad content
+ * Used after the initial AI generation or whenever ads are
+ * regenerated or edited.
  *
- * Only the ads field is updated, ensuring that the
- * brand profile and other project metadata remain untouched.
- *
- * @param projectId Firestore project document ID.
- * @param ads Updated list of ads.
+ * @param projectId Firestore project ID.
+ * @param ads Complete list of advertisements.
  */
-export async function updateAd(projectId: string, ads: Ad[]): Promise<void> {
+export async function updateAds(projectId: string, ads: Ad[]): Promise<void> {
   await updateDoc(doc(db, 'projects', projectId), {
     ads,
   })
 }
 
 /**
- * Updates the project's processing status.
+ * Updates the current processing status.
  *
- * Used by the backend pipeline so the frontend can display
- * progress to the user.
+ * This status drives the frontend progress indicator while the
+ * backend pipeline is executing.
  *
- * Typical values:
- * - processing
- * - extracting
- * - generating-brand
- * - generating-ads
- * - completed
- * - failed
- *
- * @param id Firestore project document ID.
- * @param status Current pipeline status.
+ * @param id Firestore project ID.
+ * @param status Current processing status.
  */
-export async function updateStatus(id: string, status: string): Promise<void> {
+export async function updateStatus(
+  id: string,
+  status: Project['status'],
+): Promise<void> {
   await updateDoc(doc(db, 'projects', id), {
     status,
   })

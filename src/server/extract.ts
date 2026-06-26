@@ -1,33 +1,68 @@
+// React
+import { createServerFn } from '@tanstack/react-start'
 // Helpers
-import { parseWebsite } from '#/parsers/website'
 import { renderWebsite } from '#/lib/browser'
-// Types
-import type { WebsiteContent } from '#/types/project'
+import { parseWebsite } from '#/parsers/website'
+import { generateBrandProfile } from '#/lib/gemini'
+import {
+  saveProject,
+  updateAds,
+  updateProject,
+  updateStatus,
+} from '#/lib/projects'
+import { generateAds } from '#/lib/ads'
 
 /**
- * Extracts structured content from a website URL.
+ * Renders a website using Browserless and extracts structured content
+ * from the resulting HTML.
  *
- * The website is rendered using Browserless to ensure JavaScript-generated
- * content is available before being parsed into a structured representation.
+ * Pipeline:
+ * 1. Render the website with Browserless.
+ * 2. Parse the rendered HTML into structured website content.
  *
  * @param url The website URL to extract.
- * @returns Parsed website content.
+ * @returns Structured website content.
  *
- * @throws {Error} If the website cannot be rendered or parsed.
+ * Renders a website, extracts structured content and generates
+ * an AI-powered brand profile.
  */
-export async function extractWebsite(url: string): Promise<WebsiteContent> {
-  try {
-    const html = await renderWebsite(url)
+export const extractWebsite = createServerFn({
+  method: 'POST',
+})
+  .validator((url: string) => url)
+  .handler(async ({ data: url }) => {
+    const projectId = await saveProject(url)
 
-    return parseWebsite(html)
-  } catch (error) {
-    console.error('Failed to extract website content.', {
-      url,
-      error,
-    })
+    try {
+      await updateStatus(projectId, 'extracting')
 
-    throw new Error(`Failed to extract website content from "${url}".`, {
-      cause: error,
-    })
-  }
-}
+      const html = await renderWebsite(url)
+
+      const website = parseWebsite(html)
+
+      await updateStatus(projectId, 'generating-brand')
+
+      const brandProfile = await generateBrandProfile(website)
+
+      await updateProject(projectId, {
+        brandProfile,
+      })
+
+      await updateStatus(projectId, 'generating-ads')
+
+      const ads = await generateAds(brandProfile)
+
+      await updateAds(projectId, ads)
+
+      await updateStatus(projectId, 'completed')
+
+      return {
+        projectId,
+        brandProfile,
+        ads,
+      }
+    } catch (error) {
+      await updateStatus(projectId, 'failed')
+      throw error
+    }
+  })
