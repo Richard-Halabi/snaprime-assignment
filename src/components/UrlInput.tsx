@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Spinner from './Spinner'
 // Helpers
 import { extractWebsite } from '#/server/extract'
+import type { Ad, BrandProfile } from '#/types/project'
 
 /**
  * URL input form for starting the advertisement generation pipeline.
@@ -19,7 +20,15 @@ import { extractWebsite } from '#/server/extract'
  * The resulting brand profile is currently logged to the console and will
  * later be displayed in the user interface.
  */
-export default function UrlInput() {
+type UrlInputProps = {
+  onComplete: (project: {
+    projectId: string
+    brandProfile: BrandProfile
+    ads: Ad[]
+  }) => void
+}
+
+export default function UrlInput({ onComplete }: UrlInputProps) {
   // Local State
   const [isLoading, setIsLoading] = useState(false)
   const [url, setUrl] = useState('')
@@ -30,7 +39,7 @@ export default function UrlInput() {
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    console.log('URL:', url)
+    console.log('🚀 STEP 0: URL:', URL)
 
     try {
       setIsLoading(true)
@@ -39,7 +48,9 @@ export default function UrlInput() {
         data: url,
       })
 
-      console.log(result)
+      console.log('🚀 result: result:', result)
+
+      onComplete(result)
 
       setIsLoading(false)
     } catch (error) {

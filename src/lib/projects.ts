@@ -4,8 +4,11 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   updateDoc,
+  where,
 } from 'firebase/firestore'
 
 import { db } from './firebase'
@@ -115,4 +118,35 @@ export async function updateStatus(
   await updateDoc(doc(db, 'projects', id), {
     status,
   })
+}
+
+/**
+ * Retrieves the first project associated with a website URL.
+ *
+ * Used to determine whether a website has already been processed before
+ * executing the extraction and AI generation pipeline.
+ *
+ * If a matching project exists, the previously generated brand profile and
+ * advertisements can be returned immediately, avoiding unnecessary calls to
+ * Browserless, Gemini, and Firestore writes.
+ *
+ * @param url Website URL to search for.
+ *
+ * @returns The matching project if one exists; otherwise `null`.
+ */
+export async function getProjectByUrl(url: string): Promise<Project | null> {
+  const q = query(collection(db, 'projects'), where('url', '==', url))
+
+  const snapshot = await getDocs(q)
+
+  if (snapshot.empty) {
+    return null
+  }
+
+  const document = snapshot.docs[0]
+
+  return {
+    id: document.id,
+    ...document.data(),
+  } as Project
 }

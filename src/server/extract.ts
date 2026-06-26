@@ -1,64 +1,37 @@
 // React
 import { createServerFn } from '@tanstack/react-start'
 // Helpers
+import { generateAds } from '#/lib/ads'
 import { renderWebsite } from '#/lib/browser'
-import { parseWebsite } from '#/parsers/website'
 import { generateBrandProfile } from '#/lib/gemini'
 import {
+  getProjectByUrl,
   saveProject,
   updateAds,
   updateProject,
   updateStatus,
 } from '#/lib/projects'
-import { generateAds } from '#/lib/ads'
+import { parseWebsite } from '#/parsers/website'
 
 /**
- * Complete advertisement generation pipeline.
+ * Extracts a website and generates AI-powered advertisements.
  *
- * Request Flow
+ * This server function orchestrates the complete advertisement generation
+ * pipeline from a single website URL.
+ *
+ * Pipeline
  * ───────────────────────────────────────────────────────────────
  *
- * User
- *   │
- *   ▼
- * Submit Website URL
- *   │
- *   ▼
- * Create Firestore Project
- *   │
- *   ▼
- * Browserless
- * Render Website
- *   │
- *   ▼
- * Parse HTML
- *   │
- *   ▼
- * Gemini
- * Generate Brand Profile
- *   │
- *   ▼
- * Firestore
- * Save Brand Profile
- *   │
- *   ▼
- * Gemini
- * Generate Advertisements
- *   │
- *   ▼
- * Firestore
- * Save Advertisements
- *   │
- *   ▼
- * Mark Project Completed
- *   │
- *   ▼
- * Return Project
+ * 1. Create a new Firestore project.
+ * 2. Render the website using Browserless.
+ * 3. Parse the rendered HTML into structured website data.
+ * 4. Generate a brand profile using Gemini.
+ * 5. Persist the generated brand profile.
+ * 6. Generate multiple advertisements from the brand profile.
+ * 7. Persist the generated advertisements.
+ * 8. Mark the project as completed.
  *
- * Throughout the pipeline the project status is updated so the
- * frontend can display progress to the user.
- *
- * Status Flow
+ * Project Status Flow
  * ───────────────────────────────────────────────────────────────
  *
  * processing
@@ -75,58 +48,86 @@ import { generateAds } from '#/lib/ads'
  *      ▼
  * completed
  *
- * Any failure transitions the project to:
+ * Any error transitions the project to:
  *
  * failed
- */
-
-/**
- * Renders a website using Browserless and extracts structured content
- * from the resulting HTML.
  *
- * Pipeline:
- * 1. Render the website with Browserless.
- * 2. Parse the rendered HTML into structured website content.
+ * Every stage is persisted to Firestore so the frontend can monitor
+ * long-running progress and recover from failures.
  *
- * @param url The website URL to extract.
- * @returns Structured website content.
+ * @param url Website URL submitted by the user.
  *
- * Renders a website, extracts structured content and generates
- * an AI-powered brand profile.
+ * @returns An object containing:
+ * - projectId: Firestore project identifier.
+ * - brandProfile: AI-generated understanding of the company.
+ * - ads: Collection of generated advertisements.
+ *
+ * @throws {Error}
+ * Propagates any Browserless, Gemini, Firestore or parsing errors after
+ * updating the project's status to "failed".
  */
 export const extractWebsite = createServerFn({
   method: 'POST',
 })
   .validator((url: string) => url)
   .handler(async ({ data: url }) => {
+    console.log('🔍 Checking cache...')
+
+    const existingProject = await getProjectByUrl(url)
+
+    // 1. project found create a new generation
+
+    if (existingProject) {
+      console.log('✅ Existing project found.')
+
+      return {
+        projectId: existingProject.id,
+        brandProfile: existingProject.brandProfile,
+        ads: existingProject.ads,
+      }
+    }
+
+    // 2. Not project found create a new generation
+
+    console.log('🚀 STEP 1: Creating project...')
     const projectId = await saveProject(url)
 
     try {
-      // Step 1: Create a new project.
-      const projectId = await saveProject(url)
+      console.log('🚀 STEP 2: Rendering website...')
+      await updateStatus(projectId, 'extracting')
 
-      // Step 2: Render the website with Browserless.
       const html = await renderWebsite(url)
+      console.log('✅ Website rendered.')
 
-      // Step 3: Extract structured website content.
+      console.log('🚀 STEP 3: Parsing website...')
       const website = parseWebsite(html)
+      console.log('✅ Website parsed.')
 
-      // Step 4: Generate the AI brand profile.
+      console.log('🚀 STEP 4: Generating brand profile...')
+      await updateStatus(projectId, 'generating-brand')
+
       const brandProfile = await generateBrandProfile(website)
+      console.log('✅ Brand profile generated.')
 
-      // Step 5: Persist the brand profile.
+      console.log('🚀 STEP 5: Saving brand profile...')
       await updateProject(projectId, {
         brandProfile,
       })
+      console.log('✅ Brand profile saved.')
 
-      // Step 6: Generate advertisements.
+      console.log('🚀 STEP 6: Generating advertisements...')
+      await updateStatus(projectId, 'generating-ads')
+
       const ads = await generateAds(brandProfile)
+      console.log(`✅ Generated ${ads.length} advertisements.`)
 
-      // Step 7: Persist advertisements.
+      console.log('🚀 STEP 7: Saving advertisements...')
       await updateAds(projectId, ads)
+      console.log('✅ Advertisements saved.')
 
-      // Step 8: Mark the project as completed.
+      console.log('🚀 STEP 8: Completing project...')
       await updateStatus(projectId, 'completed')
+      console.log('🎉 Pipeline completed.')
 
       return {
         projectId,
@@ -134,7 +135,10 @@ export const extractWebsite = createServerFn({
         ads,
       }
     } catch (error) {
+      console.error('❌ Pipeline failed.', error)
+
       await updateStatus(projectId, 'failed')
+
       throw error
     }
   })

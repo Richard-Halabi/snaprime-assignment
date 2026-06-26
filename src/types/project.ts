@@ -211,3 +211,9 @@ export interface WebsiteContent {
    */
   images: string[]
 }
+
+export type ProjectResult = {
+  projectId: string
+  brandProfile: BrandProfile
+  ads: Ad[]
+}
