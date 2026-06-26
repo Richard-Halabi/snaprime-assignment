@@ -39,11 +39,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(42, 13, 210, 0.24)]">
+      <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(25, 8, 121, 0.24)]">
         <Header />
         {children}
         <Footer />
-        {/* <TanStackDevtools
+        <TanStackDevtools
           config={{
             position: 'bottom-right',
           }}
@@ -53,7 +53,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               render: <TanStackRouterDevtoolsPanel />,
             },
           ]}
-        /> */}
+        />
         <Scripts />
       </body>
     </html>

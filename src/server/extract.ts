@@ -13,6 +13,74 @@ import {
 import { generateAds } from '#/lib/ads'
 
 /**
+ * Complete advertisement generation pipeline.
+ *
+ * Request Flow
+ * ───────────────────────────────────────────────────────────────
+ *
+ * User
+ *   │
+ *   ▼
+ * Submit Website URL
+ *   │
+ *   ▼
+ * Create Firestore Project
+ *   │
+ *   ▼
+ * Browserless
+ * Render Website
+ *   │
+ *   ▼
+ * Parse HTML
+ *   │
+ *   ▼
+ * Gemini
+ * Generate Brand Profile
+ *   │
+ *   ▼
+ * Firestore
+ * Save Brand Profile
+ *   │
+ *   ▼
+ * Gemini
+ * Generate Advertisements
+ *   │
+ *   ▼
+ * Firestore
+ * Save Advertisements
+ *   │
+ *   ▼
+ * Mark Project Completed
+ *   │
+ *   ▼
+ * Return Project
+ *
+ * Throughout the pipeline the project status is updated so the
+ * frontend can display progress to the user.
+ *
+ * Status Flow
+ * ───────────────────────────────────────────────────────────────
+ *
+ * processing
+ *      │
+ *      ▼
+ * extracting
+ *      │
+ *      ▼
+ * generating-brand
+ *      │
+ *      ▼
+ * generating-ads
+ *      │
+ *      ▼
+ * completed
+ *
+ * Any failure transitions the project to:
+ *
+ * failed
+ */
+
+/**
  * Renders a website using Browserless and extracts structured content
  * from the resulting HTML.
  *
@@ -34,26 +102,30 @@ export const extractWebsite = createServerFn({
     const projectId = await saveProject(url)
 
     try {
-      await updateStatus(projectId, 'extracting')
+      // Step 1: Create a new project.
+      const projectId = await saveProject(url)
 
+      // Step 2: Render the website with Browserless.
       const html = await renderWebsite(url)
 
+      // Step 3: Extract structured website content.
       const website = parseWebsite(html)
 
-      await updateStatus(projectId, 'generating-brand')
-
+      // Step 4: Generate the AI brand profile.
       const brandProfile = await generateBrandProfile(website)
 
+      // Step 5: Persist the brand profile.
       await updateProject(projectId, {
         brandProfile,
       })
 
-      await updateStatus(projectId, 'generating-ads')
-
+      // Step 6: Generate advertisements.
       const ads = await generateAds(brandProfile)
 
+      // Step 7: Persist advertisements.
       await updateAds(projectId, ads)
 
+      // Step 8: Mark the project as completed.
       await updateStatus(projectId, 'completed')
 
       return {
