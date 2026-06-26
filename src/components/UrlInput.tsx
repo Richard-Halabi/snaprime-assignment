@@ -3,7 +3,7 @@ import { useState } from 'react'
 export default function UrlInput() {
   const [url, setUrl] = useState('')
 
-  const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     console.log('URL:', url)
@@ -11,14 +11,20 @@ export default function UrlInput() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <label className="block text-sm font-medium">Website URL</label>
+      <label
+        htmlFor="website-url"
+        className="block text-sm font-medium text-white"
+      >
+        Website URL
+      </label>
 
       <input
+        id="website-url"
         type="url"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         placeholder="https://example.com"
-        className="w-full rounded-lg border p-3"
+        className="w-full rounded-lg border border-gray-500 bg-white p-3 text-black"
       />
 
       <button
