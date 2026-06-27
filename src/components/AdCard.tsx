@@ -18,18 +18,24 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
   const [isRegenerating, setIsRegenerating] = useState(false)
 
   /**
-   * Persists the current advertisement edits.
+   * Persists user edits.
    */
   const handleSave = async () => {
     try {
       setIsSaving(true)
 
-      await saveAd({
+      const updated = await saveAd({
         data: {
           projectId,
           ad: draft,
         },
       })
+
+      setDraft(updated)
+
+      console.log('✅ Advertisement saved.')
+    } catch (error) {
+      console.error('Failed to save advertisement.', error)
     } finally {
       setIsSaving(false)
     }
@@ -50,6 +56,10 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
       })
 
       setDraft(updated)
+
+      console.log('✅ Advertisement regenerated.')
+    } catch (error) {
+      console.error('Failed to regenerate advertisement.', error)
     } finally {
       setIsRegenerating(false)
     }
@@ -66,7 +76,7 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
         />
       </div>
 
-      {/* Idea */}
+      {/* Creative Idea */}
       <label className="mb-2 text-xs font-semibold uppercase tracking-widest text-violet-400">
         Creative Idea
       </label>
@@ -80,7 +90,7 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
             idea: e.target.value,
           })
         }
-        className="mb-6 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none"
+        className="mb-6 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none transition focus:border-violet-500"
       />
 
       {/* Headline */}
@@ -96,7 +106,7 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
             headline: e.target.value,
           })
         }
-        className="mb-6 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-lg font-semibold text-white outline-none"
+        className="mb-6 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-lg font-semibold text-white outline-none transition focus:border-violet-500"
       />
 
       {/* Primary Text */}
@@ -113,7 +123,7 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
             primaryText: e.target.value,
           })
         }
-        className="mb-6 w-full rounded-xl border border-white/10 bg-white/5 p-3 leading-7 text-gray-300 outline-none"
+        className="mb-6 w-full rounded-xl border border-white/10 bg-white/5 p-3 leading-7 text-gray-300 outline-none transition focus:border-violet-500"
       />
 
       {/* Description */}
@@ -130,7 +140,7 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
             description: e.target.value,
           })
         }
-        className="mb-6 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm leading-6 text-gray-400 outline-none"
+        className="mb-6 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm leading-6 text-gray-400 outline-none transition focus:border-violet-500"
       />
 
       {/* CTA */}
@@ -146,23 +156,25 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
             callToAction: e.target.value,
           })
         }
-        className="mb-8 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-white outline-none"
+        className="mb-8 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-white outline-none transition focus:border-violet-500"
       />
 
       {/* Actions */}
       <div className="mt-auto flex gap-3">
         <button
+          type="button"
           onClick={handleSave}
           disabled={isSaving || isRegenerating}
-          className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:border-violet-500 disabled:opacity-50"
+          className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:border-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? 'Saving...' : '💾 Save'}
         </button>
 
         <button
+          type="button"
           onClick={handleRegenerate}
           disabled={isSaving || isRegenerating}
-          className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isRegenerating ? 'Generating...' : '♻️ Regenerate'}
         </button>
