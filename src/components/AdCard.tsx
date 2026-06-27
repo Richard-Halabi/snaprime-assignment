@@ -26,6 +26,7 @@ export default function AdCard({ project, ad }: AdCardProps) {
   const handleSave = async () => {
     setError(null)
     setIsPosting(true)
+
     try {
       await saveAd({
         data: {

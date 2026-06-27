@@ -23,10 +23,6 @@ export const saveAd = createServerFn({
 
       return data.ad
     } catch (error) {
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : 'Failed to save advertisement.',
-      )
+      throw new Error('Failed to save advertisement.')
     }
   })
