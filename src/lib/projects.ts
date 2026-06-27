@@ -61,7 +61,11 @@ export async function updateProject(
   id: string,
   data: Partial<Project>,
 ): Promise<void> {
+  console.log('updateProject before')
+
   await updateDoc(doc(db, 'projects', id), data)
+
+  console.log('updateProject after')
 }
 
 /**
@@ -74,9 +78,13 @@ export async function updateProject(
  * @param ads Complete list of advertisements.
  */
 export async function updateAds(projectId: string, ads: Ad[]): Promise<void> {
+  console.log('updateAds before')
+
   await updateDoc(doc(db, 'projects', projectId), {
     ads,
   })
+
+  console.log('updateAds after')
 }
 
 /**
@@ -100,13 +108,13 @@ export async function updateAd(
 
   const ads = project.ads.map((ad) => (ad.id === updatedAd.id ? updatedAd : ad))
 
-  console.log('updateAd 3')
+  console.log('updateAd before')
 
   await updateDoc(doc(db, 'projects', project.projectId), {
     ads,
   })
 
-  console.log('updateAd 4')
+  console.log('updateAd after')
 }
 /**
  * Updates the current processing status.
@@ -121,9 +129,13 @@ export async function updateStatus(
   id: string,
   status: Project['status'],
 ): Promise<void> {
+  console.log('updateStatus before')
+
   await updateDoc(doc(db, 'projects', id), {
     status,
   })
+
+  console.log('updateStatus after')
 }
 
 /**
