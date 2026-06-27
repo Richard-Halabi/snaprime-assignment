@@ -30,7 +30,11 @@ export async function renderWebsite(url: string): Promise<string> {
   )
 
   if (!response.ok) {
-    throw new Error(await response.text())
+    const details = await response.text()
+
+    throw new Error(
+      `Browserless request failed (${response.status} ${response.statusText}). ${details}`,
+    )
   }
 
   return await response.text()

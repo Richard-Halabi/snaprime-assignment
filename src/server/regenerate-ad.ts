@@ -24,22 +24,32 @@ export const regenerateSingleAd = createServerFn({
 })
   .validator((data: Request) => data)
   .handler(async ({ data }) => {
-    const currentAd = data.project.ads.find((ad) => ad.id === data.adId)
+    try {
+      const currentAd = data.project.ads.find((ad) => ad.id === data.adId)
 
-    if (!currentAd) {
-      throw new Error('Advertisement not found.')
+      if (!currentAd) {
+        throw new Error('Advertisement not found.')
+      }
+
+      const updatedAd = await generateReplacementAd(
+        data.project.brandProfile,
+        currentAd,
+      )
+
+      console.log('1. updating db')
+
+      await updateAd(data.project, updatedAd)
+
+      console.log('2. returning new payload')
+
+      return updatedAd
+    } catch (error) {
+      console.error('regenerateSingleAd failed:', error)
+
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to regenerate advertisement.',
+      )
     }
-
-    const updatedAd = await generateReplacementAd(
-      data.project.brandProfile,
-      currentAd,
-    )
-
-    console.log('1. updating db')
-
-    await updateAd(data.project, updatedAd)
-
-    console.log('2. returning new payload')
-
-    return updatedAd
   })
