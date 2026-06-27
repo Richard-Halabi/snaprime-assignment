@@ -37,9 +37,11 @@ export default function BrandProfileCard({ profile }: BrandProfileCardProps) {
         <div>
           <h3 className="mb-2 font-semibold text-white">Brand Tone</h3>
 
-          <span className="inline-flex rounded-full bg-violet-600/20 px-3 py-1 text-sm text-violet-300">
-            {profile.tone}
-          </span>
+          <div className="mb-6 px-2">
+            <p className="inline-block rounded-2xl bg-violet-500/15 px-5 py-4 text-xs font-semibold uppercase leading-6 tracking-wide text-violet-300">
+              {profile.tone}
+            </p>
+          </div>
         </div>
       </div>
     </section>

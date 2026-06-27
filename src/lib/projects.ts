@@ -103,6 +103,36 @@ export async function updateAds(projectId: string, ads: Ad[]): Promise<void> {
 }
 
 /**
+ * Updates a single advertisement within a project.
+ *
+ * The advertisement is matched by its unique ID and replaced while every
+ * other advertisement remains unchanged.
+ *
+ * This is used when:
+ * - A user edits an advertisement.
+ * - A single advertisement is regenerated.
+ *
+ * @param projectId Firestore project ID.
+ * @param updatedAd Advertisement to persist.
+ */
+export async function updateAd(
+  projectId: string,
+  updatedAd: Ad,
+): Promise<void> {
+  const project = await getProject(projectId)
+
+  if (!project) {
+    throw new Error('Project not found.')
+  }
+
+  const ads = project.ads.map((ad) => (ad.id === updatedAd.id ? updatedAd : ad))
+
+  await updateDoc(doc(db, 'projects', projectId), {
+    ads,
+  })
+}
+
+/**
  * Updates the current processing status.
  *
  * This status drives the frontend progress indicator while the

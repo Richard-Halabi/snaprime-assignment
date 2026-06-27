@@ -134,7 +134,7 @@ export interface Project {
    *
    * Undefined before the project has been persisted.
    */
-  id?: string
+  id: string
 
   /**
    * Website URL submitted by the user.
@@ -169,7 +169,7 @@ export interface Project {
    *
    * Populated after successful website extraction and brand analysis.
    */
-  brandProfile?: BrandProfile
+  brandProfile: BrandProfile
 
   /**
    * Collection of generated advertisements.

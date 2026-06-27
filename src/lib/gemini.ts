@@ -1,22 +1,14 @@
 import { GoogleGenAI } from '@google/genai'
 
-import type { BrandProfile, WebsiteContent } from '#/types/project'
+import type { Ad, BrandProfile, WebsiteContent } from '#/types/project'
 
 let ai: GoogleGenAI | null = null
 
 /**
- * Returns a singleton Gemini client.
- *
- * The client is lazily initialized so importing this module does not
- * immediately require an API key. This keeps the module safe to import
- * while testing other parts of the pipeline.
- *
- * @throws {Error} If the Gemini API key is not configured.
+ * Lazily creates a singleton Gemini client.
  */
 function getGeminiClient(): GoogleGenAI {
-  if (ai) {
-    return ai
-  }
+  if (ai) return ai
 
   const apiKey = process.env.GEMINI_API_KEY
 
@@ -24,96 +16,190 @@ function getGeminiClient(): GoogleGenAI {
     throw new Error('Missing GEMINI_API_KEY')
   }
 
-  ai = new GoogleGenAI({
-    apiKey,
-  })
+  ai = new GoogleGenAI({ apiKey })
 
   return ai
 }
 
 /**
+ * Parses a Gemini JSON response.
+ */
+function parseJson<T>(text: string): T {
+  const json = text
+    .replace(/```json/g, '')
+    .replace(/```/g, '')
+    .trim()
+
+  return JSON.parse(json) as T
+}
+
+/**
  * Generates a structured brand profile from extracted website content.
- *
- * The model must only use the supplied website information and must never
- * hallucinate facts. If information cannot be inferred from the provided
- * content, the model must return "Not found".
- *
- * @param website Structured website content extracted from Browserless.
- * @returns A structured brand profile.
- *
- * @throws {Error} If the AI request fails or the response cannot be parsed.
  */
 export async function generateBrandProfile(
   website: WebsiteContent,
 ): Promise<BrandProfile> {
   console.log('Generating brand profile...')
 
-  try {
-    const prompt = `
+  const prompt = `
 You are an expert marketing strategist.
 
 Analyze the following website.
 
-Rules:
-- ONLY use the supplied information.
-- NEVER invent facts.
-- If information cannot be determined, return "Not found".
-- Preserve the supplied image URLs.
-- Return ONLY valid JSON.
-- Do NOT wrap the response in markdown.
-- Do NOT include explanations.
+Rules
 
-Website Title:
+- ONLY use supplied information.
+- NEVER hallucinate.
+- If unknown return "Not found".
+- Preserve image URLs.
+- Return ONLY JSON.
+
+Website Title
+
 ${website.title}
 
-Website Description:
+Website Description
+
 ${website.description}
 
-Visible Website Text:
+Website Text
+
 ${website.text}
 
-Candidate Images:
+Images
+
 ${website.images.join('\n')}
 
-Return JSON using exactly this schema:
+Return
 
 {
-  "company": "",
-  "description": "",
-  "audience": "",
-  "valueProposition": "",
-  "tone": "",
-  "colors": [],
-  "images": []
+  "company":"",
+  "description":"",
+  "audience":"",
+  "valueProposition":"",
+  "tone":"",
+  "colors":[],
+  "images":[]
 }
 `
 
-    const response = await getGeminiClient().models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    })
+  const response = await getGeminiClient().models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  })
 
-    const text = response.text
+  if (!response.text) {
+    throw new Error('Gemini returned an empty response.')
+  }
 
-    if (!text) {
-      throw new Error('Gemini returned an empty response.')
-    }
+  return parseJson<BrandProfile>(response.text)
+}
 
-    const json = text
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim()
+/**
+ * Generates three advertisements from a brand profile.
+ */
+export async function generateAds(brandProfile: BrandProfile): Promise<Ad[]> {
+  console.log('Generating advertisements...')
 
-    console.log('Gemini response received.')
+  const prompt = `
+You are an expert Meta advertiser.
 
-    return JSON.parse(json) as BrandProfile
-  } catch (error) {
-    console.error('Failed to generate brand profile.', {
-      error,
-    })
+Generate THREE different advertisements.
 
-    throw new Error('Unable to generate brand profile.', {
-      cause: error,
-    })
+Brand Profile
+
+${JSON.stringify(brandProfile, null, 2)}
+
+Rules
+
+- Different creative idea for each ad.
+- No hallucinations.
+- Same audience.
+- Same tone.
+- Use one image from the supplied image list.
+- Return ONLY JSON.
+
+[
+  {
+    "id":"",
+    "idea":"",
+    "headline":"",
+    "primaryText":"",
+    "description":"",
+    "callToAction":"",
+    "image":""
+  }
+]
+`
+
+  const response = await getGeminiClient().models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  })
+
+  if (!response.text) {
+    throw new Error('Gemini returned an empty response.')
+  }
+
+  return parseJson<Ad[]>(response.text)
+}
+
+/**
+ * Regenerates a single advertisement.
+ *
+ * Keeps the same image and advertisement id while producing
+ * completely new copy.
+ */
+export async function regenerateAd(
+  brandProfile: BrandProfile,
+  currentAd: Ad,
+): Promise<Ad> {
+  console.log('Regenerating advertisement...')
+
+  const prompt = `
+You are an expert Meta advertiser.
+
+Generate ONE alternative advertisement.
+
+Brand Profile
+
+${JSON.stringify(brandProfile, null, 2)}
+
+Current Advertisement
+
+${JSON.stringify(currentAd, null, 2)}
+
+Rules
+
+- New creative idea.
+- Same audience.
+- Same tone.
+- No hallucinations.
+- Keep the same image.
+- Return ONLY JSON.
+
+{
+  "idea":"",
+  "headline":"",
+  "primaryText":"",
+  "description":"",
+  "callToAction":""
+}
+`
+
+  const response = await getGeminiClient().models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  })
+
+  if (!response.text) {
+    throw new Error('Gemini returned an empty response.')
+  }
+
+  const regenerated = parseJson<Omit<Ad, 'id' | 'image'>>(response.text)
+
+  return {
+    ...currentAd,
+    ...regenerated,
   }
 }
