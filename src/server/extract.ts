@@ -137,8 +137,6 @@ export const extractWebsite = createServerFn({
     } catch (error) {
       console.error('❌ Pipeline failed.', error)
 
-      await updateStatus(projectId, 'failed')
-
       throw error
     }
   })

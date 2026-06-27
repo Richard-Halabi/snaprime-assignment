@@ -15,9 +15,8 @@ type AdCardProps = {
 
 export default function AdCard({ project, ad }: AdCardProps) {
   // Local State
-  const [draft, setDraft] = useState(ad)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [draft, setDraft] = useState<Ad>(ad)
+  const [isPosting, setIsPosting] = useState(false)
   const [showImages, setShowImages] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,28 +24,21 @@ export default function AdCard({ project, ad }: AdCardProps) {
    * Persists user edits.
    */
   const handleSave = async () => {
+    setError(null)
+    setIsPosting(true)
     try {
-      setError(null)
-      setIsSaving(true)
-
-      const updated = await saveAd({
+      await saveAd({
         data: {
           project,
           ad: draft,
         },
       })
 
-      setDraft(updated)
-
-      console.log('✅ Advertisement saved.')
+      console.log('✅ Advertisement Saved.')
     } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to save advertisement.',
-      )
+      setError('Unable to save advertisement.')
     } finally {
-      setIsSaving(false)
+      setIsPosting(false)
     }
   }
 
@@ -54,27 +46,21 @@ export default function AdCard({ project, ad }: AdCardProps) {
    * Regenerates only this advertisement.
    */
   const handleRegenerate = async (): Promise<void> => {
+    setError(null)
+    setIsPosting(true)
     try {
-      setIsRegenerating(true)
-
-      const updated = await regenerateSingleAd({
+      await regenerateSingleAd({
         data: {
           project: project,
           adId: draft.id,
         },
       })
 
-      console.log('✅ Advertisement regenerated.', updated)
-
-      setDraft(updated)
+      console.log('✅ Advertisement Regenerated.')
     } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to regenerate advertisement.',
-      )
+      setError('Unable to regenerate advertisement.')
     } finally {
-      setIsRegenerating(false)
+      setIsPosting(false)
     }
   }
 
@@ -225,19 +211,19 @@ export default function AdCard({ project, ad }: AdCardProps) {
         <button
           type="button"
           onClick={handleSave}
-          disabled={isSaving || isRegenerating}
+          disabled={isPosting}
           className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:border-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSaving ? 'Saving...' : '💾 Save'}
+          {isPosting ? 'Saving...' : '💾 Save'}
         </button>
 
         <button
           type="button"
           onClick={handleRegenerate}
-          disabled={isSaving || isRegenerating}
+          disabled={isPosting}
           className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isRegenerating ? 'Generating...' : '♻️ Regenerate'}
+          {isPosting ? 'Generating...' : '♻️ Regenerate'}
         </button>
       </div>
 

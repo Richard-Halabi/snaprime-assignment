@@ -19,6 +19,4 @@ export const saveAd = createServerFn({
   .validator((data: Request) => data)
   .handler(async ({ data }) => {
     await updateAd(data.project, data.ad)
-
-    return data.ad
   })
