@@ -150,7 +150,7 @@ Rules
  * Keeps the same image and advertisement id while producing
  * completely new copy.
  */
-export async function regenerateAd(
+export async function generateReplacementAd(
   brandProfile: BrandProfile,
   currentAd: Ad,
 ): Promise<Ad> {

@@ -3,7 +3,6 @@ import {
   addDoc,
   collection,
   doc,
-  getDoc,
   getDocs,
   query,
   serverTimestamp,
@@ -14,7 +13,7 @@ import {
 import { db } from './firebase'
 
 // Types
-import type { Ad, Project } from '#/types/project'
+import type { Ad, Project, ProjectResult } from '#/types/project'
 
 /**
  * Creates a new project in Firestore.
@@ -42,28 +41,6 @@ export async function saveProject(url: string): Promise<string> {
   })
 
   return docRef.id
-}
-
-/**
- * Retrieves a project from Firestore.
- *
- * Returns the complete project document or null if the document
- * does not exist.
- *
- * @param id Firestore project ID.
- * @returns The project or null.
- */
-export async function getProject(id: string): Promise<Project | null> {
-  const snapshot = await getDoc(doc(db, 'projects', id))
-
-  if (!snapshot.exists()) {
-    return null
-  }
-
-  return {
-    id: snapshot.id,
-    ...snapshot.data(),
-  } as Project
 }
 
 /**
@@ -116,22 +93,21 @@ export async function updateAds(projectId: string, ads: Ad[]): Promise<void> {
  * @param updatedAd Advertisement to persist.
  */
 export async function updateAd(
-  projectId: string,
+  project: ProjectResult,
   updatedAd: Ad,
 ): Promise<void> {
-  const project = await getProject(projectId)
-
-  if (!project) {
-    throw new Error('Project not found.')
-  }
+  console.log('updateAd 1')
 
   const ads = project.ads.map((ad) => (ad.id === updatedAd.id ? updatedAd : ad))
 
-  await updateDoc(doc(db, 'projects', projectId), {
+  console.log('updateAd 3')
+
+  await updateDoc(doc(db, 'projects', project.projectId), {
     ads,
   })
-}
 
+  console.log('updateAd 4')
+}
 /**
  * Updates the current processing status.
  *

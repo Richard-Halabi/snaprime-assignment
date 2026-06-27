@@ -1,13 +1,15 @@
+// Server
 import { createServerFn } from '@tanstack/react-start'
 
 // AI
-import { regenerateAd } from '#/lib/gemini'
+import { generateReplacementAd } from '#/lib/gemini'
 
 // Firebase
-import { getProject, updateAd } from '#/lib/projects'
+import { updateAd } from '#/lib/projects'
+import type { ProjectResult } from '#/types/project'
 
 type Request = {
-  projectId: string
+  project: ProjectResult
   adId: string
 }
 
@@ -22,25 +24,22 @@ export const regenerateSingleAd = createServerFn({
 })
   .validator((data: Request) => data)
   .handler(async ({ data }) => {
-    const project = await getProject(data.projectId)
-
-    if (!project) {
-      throw new Error('Project not found.')
-    }
-
-    if (!project.brandProfile) {
-      throw new Error('Brand profile not found.')
-    }
-
-    const currentAd = project.ads.find((ad) => ad.id === data.adId)
+    const currentAd = data.project.ads.find((ad) => ad.id === data.adId)
 
     if (!currentAd) {
       throw new Error('Advertisement not found.')
     }
 
-    const updatedAd = await regenerateAd(project.brandProfile, currentAd)
+    const updatedAd = await generateReplacementAd(
+      data.project.brandProfile,
+      currentAd,
+    )
 
-    await updateAd(project.id, updatedAd)
+    console.log('1. updating db')
+
+    await updateAd(data.project, updatedAd)
+
+    console.log('2. returning new payload')
 
     return updatedAd
   })

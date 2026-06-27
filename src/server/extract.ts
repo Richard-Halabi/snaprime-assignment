@@ -1,4 +1,4 @@
-// React
+// Server
 import { createServerFn } from '@tanstack/react-start'
 // Helpers
 import { generateAds } from '#/lib/ads'

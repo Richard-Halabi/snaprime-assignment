@@ -1,3 +1,4 @@
+// React
 import { useEffect, useState } from 'react'
 
 interface Star {
@@ -13,6 +14,7 @@ interface Star {
  * server/client hydration mismatches caused by Math.random().
  */
 export default function StarBackground() {
+  // Local State
   const [stars, setStars] = useState<Star[]>([])
 
   useEffect(() => {

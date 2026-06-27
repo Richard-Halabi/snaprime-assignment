@@ -212,6 +212,12 @@ export interface WebsiteContent {
   images: string[]
 }
 
+/**
+ * Represents the generated content returned to the client.
+ *
+ * This is a subset of the persisted project containing only the
+ * information required to render and edit the generated advertisements.
+ */
 export type ProjectResult = {
   projectId: string
   brandProfile: BrandProfile

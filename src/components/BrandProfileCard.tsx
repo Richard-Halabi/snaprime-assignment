@@ -1,3 +1,4 @@
+// Types
 import type { BrandProfile } from '#/types/project'
 
 type BrandProfileCardProps = {

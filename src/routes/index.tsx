@@ -50,7 +50,7 @@ function App() {
           {/*************************************************/}
           {/******************** Ads ************************/}
           {/*************************************************/}
-          <AdsGrid projectId={project.projectId} ads={project.ads} />
+          <AdsGrid project={project} />
         </section>
       )}
     </main>

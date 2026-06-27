@@ -1,12 +1,13 @@
-import type { Ad } from '#/types/project'
+// Types
+import type { ProjectResult } from '#/types/project'
+// Reusable Components
 import AdCard from './AdCard'
 
 type AdsGridProps = {
-  projectId: string
-  ads: Ad[]
+  project: ProjectResult
 }
 
-export default function AdsGrid({ projectId, ads }: AdsGridProps) {
+export default function AdsGrid({ project }: AdsGridProps) {
   return (
     <section className="mt-12">
       <div className="mb-8">
@@ -20,8 +21,8 @@ export default function AdsGrid({ projectId, ads }: AdsGridProps) {
       </div>
 
       <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-        {ads.map((ad) => (
-          <AdCard projectId={projectId} key={ad.id} ad={ad} />
+        {project.ads.map((ad) => (
+          <AdCard project={project} key={ad.id} ad={ad} />
         ))}
       </div>
     </section>

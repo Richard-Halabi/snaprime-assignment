@@ -1,11 +1,12 @@
+// Server
 import { createServerFn } from '@tanstack/react-start'
 
 import { updateAd } from '#/lib/projects'
 
-import type { Ad } from '#/types/project'
+import type { Ad, ProjectResult } from '#/types/project'
 
 type Request = {
-  projectId: string
+  project: ProjectResult
   ad: Ad
 }
 
@@ -17,7 +18,7 @@ export const saveAd = createServerFn({
 })
   .validator((data: Request) => data)
   .handler(async ({ data }) => {
-    await updateAd(data.projectId, data.ad)
+    await updateAd(data.project, data.ad)
 
     return data.ad
   })

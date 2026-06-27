@@ -3,30 +3,35 @@ import { useState } from 'react'
 // Server
 import { saveAd } from '#/server/update-ad'
 // Types
-import type { Ad } from '#/types/project'
+import type { Ad, ProjectResult } from '#/types/project'
 // Helpers
-import { regenerateSingleAd } from '#/lib/regenerate-ad'
+import { regenerateSingleAd } from '#/server/regenerate-ad'
+import ErrorBanner from './ErrorBanner'
 
 type AdCardProps = {
-  projectId: string
+  project: ProjectResult
   ad: Ad
 }
 
-export default function AdCard({ projectId, ad }: AdCardProps) {
+export default function AdCard({ project, ad }: AdCardProps) {
+  // Local State
   const [draft, setDraft] = useState(ad)
   const [isSaving, setIsSaving] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [showImages, setShowImages] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   /**
    * Persists user edits.
    */
   const handleSave = async () => {
     try {
+      setError(null)
       setIsSaving(true)
 
       const updated = await saveAd({
         data: {
-          projectId,
+          project,
           ad: draft,
         },
       })
@@ -35,7 +40,11 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
 
       console.log('✅ Advertisement saved.')
     } catch (error) {
-      console.error('Failed to save advertisement.', error)
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to save advertisement.',
+      )
     } finally {
       setIsSaving(false)
     }
@@ -44,22 +53,26 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
   /**
    * Regenerates only this advertisement.
    */
-  const handleRegenerate = async () => {
+  const handleRegenerate = async (): Promise<void> => {
     try {
       setIsRegenerating(true)
 
       const updated = await regenerateSingleAd({
         data: {
-          projectId,
+          project: project,
           adId: draft.id,
         },
       })
 
-      setDraft(updated)
+      console.log('✅ Advertisement regenerated.', updated)
 
-      console.log('✅ Advertisement regenerated.')
+      setDraft(updated)
     } catch (error) {
-      console.error('Failed to regenerate advertisement.', error)
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to regenerate advertisement.',
+      )
     } finally {
       setIsRegenerating(false)
     }
@@ -67,7 +80,7 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
 
   return (
     <article className="island-shell flex h-full flex-col rounded-3xl border border-white/10 p-6 shadow-xl transition hover:-translate-y-1 hover:border-violet-500/40">
-      {/* Image */}
+      {/* Current Image */}
       <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
         <img
           src={draft.image}
@@ -75,6 +88,54 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
           className="h-56 w-full object-cover"
         />
       </div>
+
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => setShowImages((value) => !value)}
+          className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-violet-300 transition hover:border-violet-500"
+        >
+          {showImages ? 'Hide Images' : '🖼 Swap Image'}
+        </button>
+      </div>
+
+      {showImages && (
+        <div className="mb-6">
+          <label className="mb-3 block text-xs font-semibold uppercase tracking-widest text-violet-400">
+            Available Images
+          </label>
+
+          <div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto rounded-xl border border-white/10 p-2">
+            {project.brandProfile.images.map((image) => (
+              <button
+                key={image}
+                type="button"
+                onClick={() => {
+                  setDraft({
+                    ...draft,
+                    image,
+                  })
+
+                  setShowImages(false)
+                }}
+                className={`relative overflow-hidden rounded-xl border-2 transition ${
+                  draft.image === image
+                    ? 'border-violet-500'
+                    : 'border-transparent hover:border-white/30'
+                }`}
+              >
+                <img src={image} alt="" className="h-20 w-full object-cover" />
+
+                {draft.image === image && (
+                  <div className="absolute right-2 top-2 rounded-full bg-violet-600 px-2 py-1 text-xs font-bold text-white">
+                    ✓
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Creative Idea */}
       <label className="mb-2 text-xs font-semibold uppercase tracking-widest text-violet-400">
@@ -179,6 +240,11 @@ export default function AdCard({ projectId, ad }: AdCardProps) {
           {isRegenerating ? 'Generating...' : '♻️ Regenerate'}
         </button>
       </div>
+
+      {/*****************************************************/}
+      {/********************** error ************************/}
+      {/*****************************************************/}
+      {error && <ErrorBanner message={error} />}
     </article>
   )
 }

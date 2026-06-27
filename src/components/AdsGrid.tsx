@@ -1,3 +1,4 @@
+// Types
 import type { Ad } from '#/types/project'
 
 type AdsGridProps = {

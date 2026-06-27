@@ -5,6 +5,7 @@ import Spinner from './Spinner'
 // Helpers
 import { extractWebsite } from '#/server/extract'
 import type { Ad, BrandProfile } from '#/types/project'
+import ErrorBanner from './ErrorBanner'
 
 /**
  * URL input form for starting the advertisement generation pipeline.
@@ -32,6 +33,7 @@ export default function UrlInput({ onComplete }: UrlInputProps) {
   // Local State
   const [isLoading, setIsLoading] = useState(false)
   const [url, setUrl] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   /**
    * Form submit
@@ -54,7 +56,11 @@ export default function UrlInput({ onComplete }: UrlInputProps) {
 
       setIsLoading(false)
     } catch (error) {
-      console.error('Failed to extract website.', error)
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to regenerate advertisement.',
+      )
     }
   }
 
@@ -91,6 +97,10 @@ export default function UrlInput({ onComplete }: UrlInputProps) {
           'Create'
         )}
       </button>
+      {/*****************************************************/}
+      {/********************** error ************************/}
+      {/*****************************************************/}
+      {error && <ErrorBanner message={error} />}
     </form>
   )
 }
